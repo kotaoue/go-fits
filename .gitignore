@@ -13,3 +13,4 @@
 
 # Dependency directories (remove the comment below to include it)
 service-account-file.json
+.DS_Store
