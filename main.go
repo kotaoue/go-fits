@@ -3,8 +3,8 @@ package main
 import (
 	"context"
 	"fmt"
-	"log"
 	"os"
+	"strings"
 
 	"cloud.google.com/go/storage"
 	"google.golang.org/api/fitness/v1"
@@ -23,28 +23,70 @@ func init() {
 }
 
 func main() {
-	fmt.Println("go-fits")
-	fmt.Printf("jsonPath:%s, projectID: %s\n", projectID, jsonPath)
-
-	explicit(jsonPath, projectID)
-
-	ctx := context.Background()
-	fitnessService, err := fitness.NewService(ctx)
-
-	if err != nil {
+	if err := Main(); err != nil {
 		fmt.Fprintln(os.Stderr, err)
+		os.Exit(1)
 	}
-	fmt.Println(fitnessService)
 }
 
-// explicit reads credentials from the specified path.
-func explicit(jsonPath, projectID string) {
+func Main() error {
 	ctx := context.Background()
+
+	fmt.Println(strings.Repeat("-", 64))
+	if err := getBuckets(ctx); err != nil {
+		return err
+	}
+
+	fmt.Println(strings.Repeat("-", 64))
+	if err := getFit(ctx); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func getFit(ctx context.Context) error {
+	// fitnessService, err := fitness.NewService(ctx, option.WithCredentialsFile(jsonPath))
+	fitnessService, err := fitness.NewService(ctx, option.WithCredentialsFile(jsonPath))
+	if err != nil {
+		return err
+	}
+
+	us, err := fitnessService.Users.Sessions.List("me").Do()
+	fmt.Println("# Sessions")
+	fmt.Printf("- HTTPStatusCode:%d\n", us.HTTPStatusCode)
+	fmt.Printf("- SessionLength:%d\n", len(us.Session))
+	if err != nil {
+		return err
+	}
+	for _, v := range us.Session {
+		fmt.Println(v)
+	}
+
+	ds, err := fitnessService.Users.DataSources.List("me").Do()
+	fmt.Println("# DataSources")
+	fmt.Printf("- HTTPStatusCode:%d\n", ds.HTTPStatusCode)
+	fmt.Printf("- SessionLength:%d\n", len(ds.DataSource))
+	if err != nil {
+		return err
+	}
+	for _, v := range ds.DataSource {
+		fmt.Println(v)
+	}
+
+	return nil
+}
+
+// https://github.com/googleapis/google-api-go-client/blob/f3223f87150fd81bdaf5cacb8cb3e502f5664ead/examples/fitness.go
+func getBuckets(ctx context.Context) error {
+	fmt.Println("Get a bucket list using sample code to see if the service account is correct")
+
 	client, err := storage.NewClient(ctx, option.WithCredentialsFile(jsonPath))
 	if err != nil {
-		log.Fatal(err)
+		return err
 	}
 	defer client.Close()
+
 	fmt.Println("Buckets:")
 	it := client.Buckets(ctx, projectID)
 	for {
@@ -53,8 +95,10 @@ func explicit(jsonPath, projectID string) {
 			break
 		}
 		if err != nil {
-			log.Fatal(err)
+			return err
 		}
 		fmt.Println(battrs.Name)
 	}
+
+	return nil
 }
