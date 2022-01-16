@@ -9,3 +9,9 @@ This script accesses the Fitness API
 ```
 go get google.golang.org/api/fitness/v1
 ```
+
+## Usage
+```
+export GOOGLE_PROJECT_ID="api-project-dummy"
+export GOOGLE_APPLICATION_CREDENTIALS="service-account-file.json"
+```
